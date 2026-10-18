@@ -6,19 +6,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum, type Simulation } from "d3-force";
 import type { GraphData, GraphNode } from "@/lib/graph";
+import { CATEGORIES } from "@/lib/taxonomy";
 
 type N = GraphNode & SimulationNodeDatum;
 type L = { source: string | N; target: string | N };
-const W = 900, H = 640, PAD = 44;
+const W = 1000, H = 780, PAD = 40;
 
 // สีตามสายธารความคิด; โหนดที่ยังไม่มีบทความใช้สีเทา + เส้นประ
-const PALETTE = ["var(--verdigris)", "var(--lapis)", "#b7791f", "#b4536a", "#6b7f3a", "#7a5ea8", "#2f8ab0"];
+const PALETTE = ["var(--verdigris)", "var(--lapis)", "#b7791f", "#b4536a", "#6b7f3a", "#7a5ea8", "#2f8ab0", "#a0522d"];
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 type TermRef = { slug: string; term_th: string; related_thinkers: string[] };
 export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: TermRef[] }) {
   const [, force] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
+  const [cat, setCat] = useState<string | null>(null); // กรองตามหมวดหมู่: โหนดนอกหมวดจะจางลง
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<Simulation<N, undefined> | null>(null);
   const drag = useRef<{ id: string; moved: boolean } | null>(null);
@@ -37,10 +39,10 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
   useEffect(() => {
     const keepInside = () => nodes.forEach((n) => { n.x = clamp(n.x ?? W / 2, PAD, W - PAD); n.y = clamp(n.y ?? H / 2, PAD, H - PAD); });
     const sim = forceSimulation<N>(nodes)
-      .force("link", forceLink<N, L>(links).id((d) => d.id).distance(100).strength(0.5))
-      .force("charge", forceManyBody().strength(-520))
+      .force("link", forceLink<N, L>(links).id((d) => d.id).distance(85).strength(0.5))
+      .force("charge", forceManyBody().strength(-460))
       .force("center", forceCenter(W / 2, H / 2))
-      .force("collide", forceCollide(42))
+      .force("collide", forceCollide(34))
       .stop();
     sim.tick(300); keepInside(); force((v) => v + 1);
     sim.on("tick", () => { keepInside(); force((v) => v + 1); });
@@ -85,6 +87,13 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
       <h2 className="font-serif text-2xl font-bold">กราฟความสัมพันธ์ทางความคิด</h2>
       <p className="mt-1 text-sm text-muted">ลูกศรชี้จากผู้ให้อิทธิพลไปยังผู้รับอิทธิพล ลากโหนดเพื่อจัดตำแหน่ง คลิกเพื่อดูรายละเอียด โหนดเส้นประคือผู้ที่ถูกอ้างถึงแต่ยังไม่มีบทความ</p>
 
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="กรองกราฟตามหมวดหมู่">
+        {CATEGORIES.map((c) => (
+          <button key={c.slug} aria-pressed={cat === c.slug} onClick={() => setCat((v) => (v === c.slug ? null : c.slug))}
+            className={`rounded-full border px-3 py-0.5 text-sm ${cat === c.slug ? "border-verdigris bg-verdigris text-paper" : "border-line hover:border-verdigris"}`}>{c.th}</button>
+        ))}
+      </div>
+
       <div className="mt-4 rounded-xl border border-line bg-surface">
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full touch-none select-none" role="group" aria-label="กราฟความรู้">
           <defs>
@@ -102,12 +111,12 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
             return (
               <line key={i} x1={s.x} y1={s.y} x2={t.x! - (dx / d) * rT} y2={t.y! - (dy / d) * rT}
                 stroke={active ? "var(--verdigris)" : "var(--muted)"} strokeWidth={active ? 2 : 1}
-                opacity={selected && !active ? 0.15 : 0.7} markerEnd="url(#arrow)" />
+                opacity={(selected && !active) || (cat && !(s.categories.includes(cat) && t.categories.includes(cat))) ? 0.1 : 0.7} markerEnd="url(#arrow)" />
             );
           })}
 
           {nodes.map((n) => {
-            const dim = selected && n.id !== selected && !neighbors.has(n.id);
+            const dim = (selected && n.id !== selected && !neighbors.has(n.id)) || (cat && !n.categories.includes(cat));
             return (
               <g key={n.id} transform={`translate(${n.x ?? W / 2},${n.y ?? H / 2})`} opacity={dim ? 0.25 : 1}
                 tabIndex={0} role="button" aria-label={`${n.label}${n.ghost ? " (ยังไม่มีบทความ)" : ""}`} aria-pressed={selected === n.id}
