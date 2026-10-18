@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* โทนหลัก: หมึกน้ำเงินเข้ม + กระดาษเย็น + สนิมทองแดง (หลีกเลี่ยงโทนครีม/ดินเผาที่เห็นทั่วไป) */
+:root {
+  --paper: #eef1f2;   --surface: #ffffff; --ink: #14202b;
+  --muted: #5b6b78;   --line: #d3dade;
+  --verdigris: #2b6b66; --lapis: #34408f;
+}
+.dark {
+  --paper: #0e1a22;   --surface: #14242e; --ink: #e6edf1;
+  --muted: #94a5b1;   --line: #26394a;
+  --verdigris: #6fc2b8; --lapis: #9aa8f0;
+}
+
+html { scroll-padding-top: 5rem; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.85; }
+/* ภาษาไทยไม่มีเว้นวรรคระหว่างคำ → ให้เบราว์เซอร์ตัดคำเอง */
+body { overflow-wrap: anywhere; }
+:focus-visible { outline: 2px solid var(--verdigris); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+.glass { background: color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter: blur(12px); }
