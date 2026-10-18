@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { Entry } from "@/lib/content";
+import { CATEGORIES, categoryLabel } from "@/lib/taxonomy";
 
-type Facet = "era" | "tradition" | "branch";
-const FACET_LABEL: Record<Facet, string> = { era: "ยุค", tradition: "สายธารความคิด", branch: "สาขา" };
+type Facet = "category" | "era" | "tradition" | "branch";
+const FACET_LABEL: Record<Facet, string> = { category: "หมวด", era: "ยุค", tradition: "สายธารความคิด", branch: "สาขา" };
 
 export function Catalog({ entries }: { entries: Entry[] }) {
   const [q, setQ] = useState("");
-  const [active, setActive] = useState<Record<Facet, Set<string>>>({ era: new Set(), tradition: new Set(), branch: new Set() });
+  const [active, setActive] = useState<Record<Facet, Set<string>>>({ category: new Set(), era: new Set(), tradition: new Set(), branch: new Set() });
 
   const facets = useMemo(() => ({
+    category: CATEGORIES.filter((c) => entries.some((e) => e.categories.includes(c.slug))).map((c) => c.slug) as string[],
     era: [...new Set(entries.map((e) => e.era))],
     tradition: [...new Set(entries.map((e) => e.tradition))],
     branch: [...new Set(entries.flatMap((e) => e.branch))],
@@ -25,6 +27,7 @@ export function Catalog({ entries }: { entries: Entry[] }) {
     const needle = q.trim().toLowerCase();
     return entries.filter((e) => {
       // ภายในกลุ่มเดียวกัน = OR, ข้ามกลุ่ม = AND
+      if (active.category.size && !e.categories.some((c) => active.category.has(c))) return false;
       if (active.era.size && !active.era.has(e.era)) return false;
       if (active.tradition.size && !active.tradition.has(e.tradition)) return false;
       if (active.branch.size && !e.branch.some((b) => active.branch.has(b))) return false;
@@ -48,7 +51,7 @@ export function Catalog({ entries }: { entries: Entry[] }) {
             {facets[f].map((v) => (
               <button key={v} onClick={() => toggle(f, v)} aria-pressed={active[f].has(v)}
                 className={`rounded-full border px-3 py-0.5 text-sm transition-colors ${active[f].has(v) ? "border-verdigris bg-verdigris text-paper" : "border-line hover:border-verdigris"}`}>
-                {v}
+                {f === "category" ? categoryLabel(v) : v}
               </button>
             ))}
           </div>
