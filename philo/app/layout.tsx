@@ -1,13 +1,13 @@
 // app/layout.tsx — โครงหลัก: ฟอนต์ไทย, ธีม, Header/Sidebar/Footer
 import type { Metadata } from "next";
-import { Noto_Serif_Thai, Sarabun } from "next/font/google";
+import { Anuphan } from "next/font/google";
 import "./globals.css";
 import { Shell } from "@/components/Shell";
 import { getAllEntries } from "@/lib/content";
+import { CATEGORIES } from "@/lib/taxonomy";
 
-// หัวเรื่องใช้ Noto Serif Thai (บรรยากาศหนังสือวิชาการ) / เนื้อหาใช้ Sarabun (อ่านยาวสบายตา)
-const serif = Noto_Serif_Thai({ subsets: ["thai", "latin"], weight: ["500", "700"], variable: "--font-serif" });
-const sans = Sarabun({ subsets: ["thai", "latin"], weight: ["300", "400", "500", "600"], variable: "--font-sans" });
+// Anuphan เป็น variable font (น้ำหนัก 100–700) ใช้เป็นฟอนต์เดียวทั้งระบบ: UI, หัวข้อ, เนื้อหา MDX
+const anuphan = Anuphan({ subsets: ["thai", "latin"], variable: "--font-anuphan", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "คลังปรัชญา", template: "%s | คลังปรัชญา" },
@@ -20,10 +20,10 @@ const themeScript = `try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const nav = getAllEntries().map((e) => ({ slug: e.slug, title: e.title, era: e.era }));
   return (
-    <html lang="th" suppressHydrationWarning className={`${serif.variable} ${sans.variable}`}>
+    <html lang="th" suppressHydrationWarning className={`${anuphan.variable} font-sans`}>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>
-        <Shell nav={nav}>{children}</Shell>
+        <Shell nav={nav} categories={CATEGORIES.map((c) => ({ slug: c.slug, th: c.th }))}>{children}</Shell>
       </body>
     </html>
   );
