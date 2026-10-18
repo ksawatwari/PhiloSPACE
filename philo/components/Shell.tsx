@@ -6,7 +6,7 @@ import { Menu, X, Moon, Sun, Search, Landmark } from "lucide-react";
 
 type NavItem = { slug: string; title: string; era: string };
 
-export function Shell({ nav, children }: { nav: NavItem[]; children: React.ReactNode }) {
+export function Shell({ nav, categories, children }: { nav: NavItem[]; categories: { slug: string; th: string }[]; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const toggleTheme = () => {
@@ -48,6 +48,14 @@ export function Shell({ nav, children }: { nav: NavItem[]; children: React.React
           className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-surface p-5 transition-transform lg:sticky lg:top-14 lg:z-0 lg:h-[calc(100vh-3.5rem)] lg:translate-x-0 lg:bg-transparent ${open ? "translate-x-0" : "-translate-x-full"}`}
         >
           <button className="mb-4 lg:hidden" aria-label="ปิดเมนู" onClick={() => setOpen(false)}><X size={22} /></button>
+          <div className="mb-6">
+            <p className="mb-1 text-sm font-semibold text-lapis">หมวดหมู่</p>
+            <ul className="space-y-0.5 text-[15px]">
+              {categories.map((c) => (
+                <li key={c.slug}><Link href={`/category/${c.slug}`} onClick={() => setOpen(false)} className="block rounded px-2 py-1 text-muted hover:bg-line/50 hover:text-ink">{c.th}</Link></li>
+              ))}
+            </ul>
+          </div>
           {Object.entries(groups).map(([era, items]) => (
             <div key={era} className="mb-5">
               <p className="mb-1 text-sm font-semibold text-verdigris">{era}</p>
