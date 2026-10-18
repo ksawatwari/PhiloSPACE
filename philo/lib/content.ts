@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
+import { CATEGORY_SLUGS } from "./taxonomy";
 
 const DIR = path.join(process.cwd(), "content", "philosophy");
 
@@ -14,6 +15,7 @@ export const FrontmatterSchema = z.object({
   era: z.string(),                         // กรีกโบราณ | ยุคกลาง | สมัยใหม่ | ศตวรรษที่ 21
   tradition: z.string(),                   // ตะวันตก | ตะวันออก | ปรัชญาอิสลาม ...
   branch: z.array(z.string()),             // จริยศาสตร์, อภิปรัชญา, ...
+  categories: z.array(z.enum(CATEGORY_SLUGS)).default([]), // หมวดหมู่ระดับบน ดู lib/taxonomy.ts
   birth_death: z.string(),                 // "พ.ศ. 2502 (ค.ศ. 1959) – ปัจจุบัน"
   timeline_year: z.number(),               // ปี ค.ศ. สำหรับเรียงบนไทม์ไลน์ (ก่อน ค.ศ. = ติดลบ)
   key_concepts: z.array(z.string()),
