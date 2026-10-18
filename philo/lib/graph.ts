@@ -1,7 +1,7 @@
 // lib/graph.ts — แปลง frontmatter (influences / influenced_by) เป็นข้อมูลกราฟ; ไม่ใช้ fs จึง import ฝั่งไหนก็ได้
 import type { Entry } from "./content";
 
-export type GraphNode = { id: string; label: string; era: string; tradition: string; ghost: boolean };
+export type GraphNode = { id: string; label: string; era: string; tradition: string; ghost: boolean; categories: string[] };
 export type GraphLink = { source: string; target: string }; // ทิศทาง: ผู้ให้อิทธิพล → ผู้รับอิทธิพล
 export type GraphData = { nodes: GraphNode[]; links: GraphLink[] };
 
@@ -30,11 +30,23 @@ const GHOSTS: Record<string, { label: string; tradition: string }> = {
   gaudapada: { label: "เคาฑปาทะ", tradition: "อินเดีย–เวทานตะ" },
   aquinas: { label: "อไควนัส", tradition: "ตะวันตก" },
   suhrawardi: { label: "สุฮรอวัรดี", tradition: "อิสลาม" },
+  "ibn-arabi": { label: "อิบนุ อัล-อะเราะบี", tradition: "อิสลาม" },
+  democritus: { label: "เดโมคริตัส", tradition: "ตะวันตก" },
+  lucretius: { label: "ลูเครเชียส", tradition: "ตะวันตก" },
+  "marcus-aurelius": { label: "มาร์คัส ออเรลิอัส", tradition: "ตะวันตก" },
+  ryle: { label: "ไรล์", tradition: "ตะวันตก" },
+  quine: { label: "ไควน์", tradition: "ตะวันตก" },
+  hare: { label: "แฮร์", tradition: "ตะวันตก" },
+  bentham: { label: "เบนแธม", tradition: "ตะวันตก" },
+  bergson: { label: "แบร์กซง", tradition: "ตะวันตก" },
+  benjamin: { label: "เบนยามิน", tradition: "ตะวันตก" },
+  habermas: { label: "ฮาเบอร์มาส", tradition: "ตะวันตก" },
+  simondon: { label: "ซีมงดง", tradition: "ตะวันตก" },
 };
 
 export function buildGraph(entries: Entry[]): GraphData {
   const nodes = new Map<string, GraphNode>();
-  entries.forEach((e) => nodes.set(e.slug, { id: e.slug, label: e.title, era: e.era, tradition: e.tradition, ghost: false }));
+  entries.forEach((e) => nodes.set(e.slug, { id: e.slug, label: e.title, era: e.era, tradition: e.tradition, ghost: false, categories: e.categories }));
 
   const seen = new Set<string>();
   const links: GraphLink[] = [];
@@ -45,7 +57,7 @@ export function buildGraph(entries: Entry[]): GraphData {
     for (const id of [from, to]) {
       if (!nodes.has(id)) {
         const g = GHOSTS[id];
-        nodes.set(id, { id, label: g?.label ?? id, era: "", tradition: g?.tradition ?? "อื่น ๆ", ghost: true });
+        nodes.set(id, { id, label: g?.label ?? id, era: "", tradition: g?.tradition ?? "อื่น ๆ", ghost: true, categories: [] });
       }
     }
     links.push({ source: from, target: to });
