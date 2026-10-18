@@ -15,10 +15,13 @@
 }
 
 html { scroll-padding-top: 5rem; }
-body { background: var(--paper); color: var(--ink); font-family: var(--font-sans); line-height: 1.85; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-anuphan), ui-sans-serif, system-ui, sans-serif; line-height: 1.85; }
 /* ภาษาไทยไม่มีเว้นวรรคระหว่างคำ → ให้เบราว์เซอร์ตัดคำเอง */
 body { overflow-wrap: anywhere; }
 :focus-visible { outline: 2px solid var(--verdigris); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 .glass { background: color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter: blur(12px); }
+
+/* หัวข้อและเนื้อหาบทความใช้ Anuphan ผ่าน font-family ของ body; บังคับซ้ำเผื่อ plugin อื่นตั้งค่าทับ */
+h1,h2,h3,h4,h5,h6,.prose{font-family:inherit}
