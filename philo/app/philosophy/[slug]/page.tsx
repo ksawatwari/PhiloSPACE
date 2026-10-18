@@ -10,6 +10,7 @@ import { getAllTerms } from "@/lib/glossary";
 import { buildGraph } from "@/lib/graph";
 import { CitePopover, QuoteCard, Trivia, TermPopover } from "@/components/mdx";
 import { MiniGraph } from "@/components/MiniGraph";
+import { categoryLabel } from "@/lib/taxonomy";
 
 export const dynamicParams = false;
 export function generateStaticParams() { return getAllEntries().map((e) => ({ slug: e.slug })); }
@@ -51,6 +52,9 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     <article className="mx-auto max-w-3xl">
       <header className="border-b border-line pb-6">
         <p className="text-sm text-muted">{meta.era} · {meta.tradition}</p>
+        {meta.categories.length > 0 && (
+          <p className="mt-1 flex flex-wrap gap-2 text-xs">{meta.categories.map((c) => <Link key={c} href={`/category/${c}`} className="rounded-full bg-line/60 px-2.5 py-0.5 text-lapis hover:underline">{categoryLabel(c)}</Link>)}</p>
+        )}
         <h1 className="mt-1 font-serif text-4xl font-bold">{meta.title}</h1>
         <p className="text-lg text-muted">{meta.original_name}</p>
         <dl className="mt-5 grid gap-3 rounded-xl border border-line bg-surface p-4 text-sm sm:grid-cols-2">
