@@ -1,71 +1,41 @@
 // lib/graph.ts — แปลง frontmatter (influences / influenced_by) เป็นข้อมูลกราฟ; ไม่ใช้ fs จึง import ฝั่งไหนก็ได้
 import type { Entry } from "./content";
+import type { Debate } from "./debates";
 
-export type GraphNode = { id: string; label: string; era: string; tradition: string; ghost: boolean; categories: string[] };
-export type GraphLink = { source: string; target: string }; // ทิศทาง: ผู้ให้อิทธิพล → ผู้รับอิทธิพล
+export type GraphNode = { id: string; label: string; era: string; tradition: string; ghost: boolean; categories: string[]; kind: "thinker" | "debate"; href: string };
+export type GraphLink = { source: string; target: string; kind?: "influence" | "debate" }; // ทิศทาง: ผู้ให้อิทธิพล → ผู้รับอิทธิพล
 export type GraphData = { nodes: GraphNode[]; links: GraphLink[] };
 
-/** ชื่อของ slug ที่ถูกอ้างถึง แต่ยังไม่มีบทความ (แสดงเป็นโหนดเส้นประ) — เพิ่มได้เรื่อย ๆ */
-const GHOSTS: Record<string, { label: string; tradition: string }> = {
-  socrates: { label: "ซอคราตีส", tradition: "ตะวันตก" },
-  parmenides: { label: "ปาร์มีนิดีส", tradition: "ตะวันตก" },
-  aristotle: { label: "อริสโตเติล", tradition: "ตะวันตก" },
-  hume: { label: "ฮิวม์", tradition: "ตะวันตก" },
-  rousseau: { label: "รุสโซ", tradition: "ตะวันตก" },
-  leibniz: { label: "ไลบ์นิซ", tradition: "ตะวันตก" },
-  hegel: { label: "เฮเกล", tradition: "ตะวันตก" },
-  schopenhauer: { label: "โชเพนเฮาเออร์", tradition: "ตะวันตก" },
-  marx: { label: "มาร์กซ์", tradition: "ตะวันตก" },
-  lacan: { label: "ลากอง", tradition: "ตะวันตก" },
-  nietzsche: { label: "นีทเชอ", tradition: "ตะวันตก" },
-  heidegger: { label: "ไฮเดกเกอร์", tradition: "ตะวันตก" },
-  foucault: { label: "ฟูโกต์", tradition: "ตะวันตก" },
-  buddha: { label: "พระพุทธเจ้า", tradition: "อินเดีย–พุทธ" },
-  candrakirti: { label: "จันทรกีรติ", tradition: "อินเดีย–พุทธ" },
-  "chan-buddhism": { label: "พุทธนิกายฉาน/เซน", tradition: "จีน–เต๋า" },
-  zhuangzi: { label: "จวงจื๊อ", tradition: "จีน–เต๋า" },
-  husserl: { label: "ฮุสเซิร์ล", tradition: "ตะวันตก" },
-  mencius: { label: "เมิ่งจื่อ", tradition: "จีน–ขงจื๊อ" },
-  xunzi: { label: "ซวินจื่อ", tradition: "จีน–ขงจื๊อ" },
-  gaudapada: { label: "เคาฑปาทะ", tradition: "อินเดีย–เวทานตะ" },
-  aquinas: { label: "อไควนัส", tradition: "ตะวันตก" },
-  suhrawardi: { label: "สุฮรอวัรดี", tradition: "อิสลาม" },
-  "ibn-arabi": { label: "อิบนุ อัล-อะเราะบี", tradition: "อิสลาม" },
-  democritus: { label: "เดโมคริตัส", tradition: "ตะวันตก" },
-  lucretius: { label: "ลูเครเชียส", tradition: "ตะวันตก" },
-  "marcus-aurelius": { label: "มาร์คัส ออเรลิอัส", tradition: "ตะวันตก" },
-  ryle: { label: "ไรล์", tradition: "ตะวันตก" },
-  quine: { label: "ไควน์", tradition: "ตะวันตก" },
-  hare: { label: "แฮร์", tradition: "ตะวันตก" },
-  bentham: { label: "เบนแธม", tradition: "ตะวันตก" },
-  bergson: { label: "แบร์กซง", tradition: "ตะวันตก" },
-  benjamin: { label: "เบนยามิน", tradition: "ตะวันตก" },
-  habermas: { label: "ฮาเบอร์มาส", tradition: "ตะวันตก" },
-  simondon: { label: "ซีมงดง", tradition: "ตะวันตก" },
-};
-
-export function buildGraph(entries: Entry[]): GraphData {
+export function buildGraph(entries: Entry[], debates: Debate[] = []): GraphData {
   const nodes = new Map<string, GraphNode>();
-  entries.forEach((e) => nodes.set(e.slug, { id: e.slug, label: e.title, era: e.era, tradition: e.tradition, ghost: false, categories: e.categories }));
+  entries.forEach((e) => nodes.set(e.slug, { id: e.slug, label: e.title, era: e.era, tradition: e.tradition, ghost: false, categories: e.categories, kind: "thinker", href: `/philosophy/${e.slug}` }));
 
   const seen = new Set<string>();
   const links: GraphLink[] = [];
   const add = (from: string, to: string) => {
     const key = `${from}>${to}`;
     if (seen.has(key) || from === to) return; // กันเส้นซ้ำเมื่อสองบทความอ้างถึงกันทั้งสองฝั่ง
-    seen.add(key);
+    // ทุกโหนดต้องมีบทความจริง: slug ที่ไม่มีไฟล์จะถูกข้าม (ไม่สร้างโหนดเส้นประ) พร้อมแจ้งเตือนตอน build
     for (const id of [from, to]) {
-      if (!nodes.has(id)) {
-        const g = GHOSTS[id];
-        nodes.set(id, { id, label: g?.label ?? id, era: "", tradition: g?.tradition ?? "อื่น ๆ", ghost: true, categories: [] });
-      }
+      if (!nodes.has(id)) { console.warn(`[graph] ไม่พบบทความ "${id}" — ข้ามความเชื่อมโยง ${from} → ${to}`); return; }
     }
+    seen.add(key);
     links.push({ source: from, target: to });
   };
 
   for (const e of entries) {
     e.influences.forEach((t) => add(e.slug, t));
     e.influenced_by.forEach((f) => add(f, e.slug));
+  }
+
+  // ข้อโต้แย้ง/การทดลองทางความคิด = โหนดรูปข้าวหลามตัด; เส้นเชื่อมจากนักคิดหลักไปยังข้อโต้แย้งนั้น
+  for (const d of debates) {
+    const id = `debate:${d.slug}`;
+    nodes.set(id, { id, label: d.title, era: "", tradition: "ข้อโต้แย้ง", ghost: false, categories: d.categories, kind: "debate", href: `/debates/${d.slug}` });
+    for (const fig of d.key_figures) {
+      if (!nodes.has(fig)) { console.warn(`[graph] debate ${d.slug}: ไม่พบนักคิด "${fig}"`); continue; }
+      links.push({ source: fig, target: id, kind: "debate" });
+    }
   }
   return { nodes: [...nodes.values()], links };
 }
