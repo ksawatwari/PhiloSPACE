@@ -9,11 +9,11 @@ import type { GraphData, GraphNode } from "@/lib/graph";
 import { CATEGORIES } from "@/lib/taxonomy";
 
 type N = GraphNode & SimulationNodeDatum;
-type L = { source: string | N; target: string | N };
-const W = 1000, H = 780, PAD = 40;
+type L = { source: string | N; target: string | N; kind?: string };
+const W = 1200, H = 1000, PAD = 40;
 
 // สีตามสายธารความคิด; โหนดที่ยังไม่มีบทความใช้สีเทา + เส้นประ
-const PALETTE = ["var(--verdigris)", "var(--lapis)", "#b7791f", "#b4536a", "#6b7f3a", "#7a5ea8", "#2f8ab0", "#a0522d"];
+const PALETTE = ["var(--verdigris)", "var(--lapis)", "#b7791f", "#b4536a", "#6b7f3a", "#7a5ea8", "#2f8ab0", "#a0522d", "#4a7fb0", "#9a4f96", "#c28b2b"];
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 type TermRef = { slug: string; term_th: string; related_thinkers: string[] };
@@ -40,9 +40,9 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
     const keepInside = () => nodes.forEach((n) => { n.x = clamp(n.x ?? W / 2, PAD, W - PAD); n.y = clamp(n.y ?? H / 2, PAD, H - PAD); });
     const sim = forceSimulation<N>(nodes)
       .force("link", forceLink<N, L>(links).id((d) => d.id).distance(85).strength(0.5))
-      .force("charge", forceManyBody().strength(-460))
+      .force("charge", forceManyBody().strength(-520))
       .force("center", forceCenter(W / 2, H / 2))
-      .force("collide", forceCollide(34))
+      .force("collide", forceCollide(30))
       .stop();
     sim.tick(300); keepInside(); force((v) => v + 1);
     sim.on("tick", () => { keepInside(); force((v) => v + 1); });
@@ -79,13 +79,14 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
   }, [selected, data]);
   const sel = selected ? data.nodes.find((n) => n.id === selected) : null;
   const names = (ids: string[]) => ids.map((i) => data.nodes.find((n) => n.id === i)?.label ?? i).join(", ") || "—";
-  const from = selected ? data.links.filter((l) => l.target === selected).map((l) => l.source) : [];
-  const to = selected ? data.links.filter((l) => l.source === selected).map((l) => l.target) : [];
+  const from = selected ? data.links.filter((l) => l.target === selected && l.kind !== "debate").map((l) => l.source) : [];
+  const to = selected ? data.links.filter((l) => l.source === selected && l.kind !== "debate").map((l) => l.target) : [];
+  const related = selected ? data.links.filter((l) => l.kind === "debate" && (l.source === selected || l.target === selected)).map((l) => (l.source === selected ? l.target : l.source)) : [];
 
   return (
     <section id="graph" aria-label="กราฟความสัมพันธ์ทางความคิด">
       <h2 className="font-serif text-2xl font-bold">กราฟความสัมพันธ์ทางความคิด</h2>
-      <p className="mt-1 text-sm text-muted">ลูกศรชี้จากผู้ให้อิทธิพลไปยังผู้รับอิทธิพล ลากโหนดเพื่อจัดตำแหน่ง คลิกเพื่อดูรายละเอียด โหนดเส้นประคือผู้ที่ถูกอ้างถึงแต่ยังไม่มีบทความ</p>
+      <p className="mt-1 text-sm text-muted">ลูกศรชี้จากผู้ให้อิทธิพลไปยังผู้รับอิทธิพล ลากโหนดเพื่อจัดตำแหน่ง คลิกเพื่อดูรายละเอียด{data.nodes.some((n) => n.ghost) ? " โหนดเส้นประคือผู้ที่ถูกอ้างถึงแต่ยังไม่มีบทความ" : ""}</p>
 
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="กรองกราฟตามหมวดหมู่">
         {CATEGORIES.map((c) => (
@@ -110,7 +111,7 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
             const active = selected && (s.id === selected || t.id === selected);
             return (
               <line key={i} x1={s.x} y1={s.y} x2={t.x! - (dx / d) * rT} y2={t.y! - (dy / d) * rT}
-                stroke={active ? "var(--verdigris)" : "var(--muted)"} strokeWidth={active ? 2 : 1}
+                stroke={active ? "var(--verdigris)" : "var(--muted)"} strokeWidth={active ? 2 : 1} strokeDasharray={l.kind === "debate" ? "2 4" : undefined}
                 opacity={(selected && !active) || (cat && !(s.categories.includes(cat) && t.categories.includes(cat))) ? 0.1 : 0.7} markerEnd="url(#arrow)" />
             );
           })}
@@ -123,7 +124,9 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
                 className="cursor-grab outline-none focus-visible:[&>circle]:stroke-[3] active:cursor-grabbing"
                 onPointerDown={(e) => onDown(e, n)} onPointerMove={(e) => onMove(e, n)} onPointerUp={() => onUp(n)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected((s) => (s === n.id ? null : n.id)); } }}>
-                <circle r={n.ghost ? 10 : 16} fill={n.ghost ? "var(--surface)" : colorOf(n)} stroke={colorOf(n)} strokeWidth={2} strokeDasharray={n.ghost ? "3 3" : undefined} />
+                {n.kind === "debate"
+                  ? <rect x={-11} y={-11} width={22} height={22} rx={3} transform="rotate(45)" fill="var(--surface)" stroke={colorOf(n)} strokeWidth={2.5} />
+                  : <circle r={n.ghost ? 10 : 16} fill={n.ghost ? "var(--surface)" : colorOf(n)} stroke={colorOf(n)} strokeWidth={2} strokeDasharray={n.ghost ? "3 3" : undefined} />}
                 <text y={n.ghost ? 26 : 32} textAnchor="middle" fontSize={n.ghost ? 12 : 14} fontWeight={n.ghost ? 400 : 600}
                   fill="var(--ink)" stroke="var(--surface)" strokeWidth={3} paintOrder="stroke">{n.label}</text>
               </g>
@@ -133,7 +136,7 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
 
         <ul className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line px-4 py-2 text-sm text-muted">
           {legend.map((l) => (<li key={l.t} className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: l.c }} />{l.t}</li>))}
-          <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-dashed border-muted" />ยังไม่มีบทความ</li>
+          {data.nodes.some((n) => n.ghost) && <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-dashed border-muted" />ยังไม่มีบทความ</li>}
         </ul>
       </div>
 
@@ -142,10 +145,12 @@ export function KnowledgeGraph({ data, terms = [] }: { data: GraphData; terms?: 
           <>
             <p className="font-serif text-lg font-bold">{sel.label}</p>
             {sel.era && <p className="text-sm text-muted">{sel.era} · {sel.tradition}</p>}
-            <p className="mt-2"><span className="text-muted">รับอิทธิพลจาก:</span> {names(from)}</p>
-            <p><span className="text-muted">ส่งอิทธิพลต่อ:</span> {names(to)}</p>
+            {sel.kind === "debate"
+              ? <p><span className="text-muted">นักคิดที่เกี่ยวข้อง:</span> {names(related)}</p>
+              : <><p><span className="text-muted">รับอิทธิพลจาก:</span> {names(from)}</p><p><span className="text-muted">ส่งอิทธิพลต่อ:</span> {names(to)}</p>
+                {related.length > 0 && <p><span className="text-muted">ข้อโต้แย้งที่เกี่ยวข้อง:</span> {names(related)}</p>}</>}
             {sel.ghost ? <p className="mt-2 text-sm text-muted">ยังไม่มีบทความของหัวข้อนี้ในคลัง</p>
-              : <Link href={`/philosophy/${sel.id}`} className="mt-2 inline-block text-lapis underline">อ่านบทความ</Link>}
+              : <Link href={sel.href} className="mt-2 inline-block text-lapis underline">{sel.kind === "debate" ? "อ่านข้อโต้แย้ง" : "อ่านบทความ"}</Link>}
             {terms.some((t) => t.related_thinkers.includes(sel.id)) && (
               <p className="mt-2 text-sm"><span className="text-muted">คำศัพท์ที่เกี่ยวข้อง:</span>{" "}
                 {terms.filter((t) => t.related_thinkers.includes(sel.id)).map((t, i) => (
