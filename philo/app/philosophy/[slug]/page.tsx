@@ -8,6 +8,7 @@ import { CalendarDays, Landmark, BookOpen, ListTree } from "lucide-react";
 import { getAllEntries, getEntry } from "@/lib/content";
 import { getAllTerms } from "@/lib/glossary";
 import { buildGraph } from "@/lib/graph";
+import { getAllDebates, DEBATE_KINDS } from "@/lib/debates";
 import { CitePopover, QuoteCard, Trivia, TermPopover } from "@/components/mdx";
 import { MiniGraph } from "@/components/MiniGraph";
 import { categoryLabel } from "@/lib/taxonomy";
@@ -44,6 +45,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     h2: (p: React.ComponentProps<"h2">) => <h2 id={slugify(String(p.children))} className="font-serif" {...p} />,
   };
   const relatedTerms = terms.filter((t) => t.related_thinkers.includes(meta.slug)).map((t) => ({ slug: t.slug, term_th: t.term_th }));
+  const debatesOf = getAllDebates().filter((d) => d.key_figures.includes(meta.slug));
   const link = (s: string, i: number) => (
     <span key={s}>{i > 0 && ", "}{exists(s) ? <Link className="text-lapis underline" href={`/philosophy/${s}`}>{nameOf(s)}</Link> : nameOf(s)}</span>
   );
@@ -76,6 +78,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
       </div>
 
       <MiniGraph centerId={meta.slug} data={graph} terms={relatedTerms} />
+
+      {debatesOf.length > 0 && (
+        <section className="mt-8" aria-label="ข้อโต้แย้งที่เกี่ยวข้อง">
+          <h2 className="font-serif text-xl font-bold">ข้อโต้แย้งและการทดลองทางความคิดที่เกี่ยวข้อง</h2>
+          <ul className="mt-2 flex flex-wrap gap-2 text-sm">{debatesOf.map((d) => <li key={d.slug}><Link href={`/debates/${d.slug}`} className="rounded-full border border-line px-3 py-1 text-lapis hover:border-verdigris">{d.title} <span className="text-muted">({DEBATE_KINDS[d.kind]})</span></Link></li>)}</ul>
+        </section>
+      )}
 
       {meta.citations.length > 0 && (
         <section className="mt-12 border-t border-line pt-6">
