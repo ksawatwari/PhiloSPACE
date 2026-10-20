@@ -6,6 +6,7 @@ import { Timeline } from "@/components/Timeline";
 import { KnowledgeGraph } from "@/components/KnowledgeGraph";
 import { buildGraph } from "@/lib/graph";
 import { getAllTerms } from "@/lib/glossary";
+import { getAllDebates } from "@/lib/debates";
 
 export const metadata: Metadata = { title: "แคตตาล็อกปรัชญา" };
 
@@ -18,7 +19,7 @@ export default function CatalogPage() {
         <p className="mt-2 max-w-prose text-muted">ค้นหานักคิด สำนัก และแนวคิดจากโลกโบราณถึงปัจจุบัน</p>
       </header>
       <Catalog entries={entries} />
-      <KnowledgeGraph data={buildGraph(entries)} terms={getAllTerms().map((t) => ({ slug: t.slug, term_th: t.term_th, related_thinkers: t.related_thinkers }))} />
+      <KnowledgeGraph data={buildGraph(entries, getAllDebates())} terms={getAllTerms().map((t) => ({ slug: t.slug, term_th: t.term_th, related_thinkers: t.related_thinkers }))} />
       <Timeline items={entries.map((e) => ({ slug: e.slug, title: e.title, era: e.era, year: e.timeline_year }))} />
     </div>
   );
