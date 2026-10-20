@@ -30,6 +30,7 @@ export function Shell({ nav, categories, children }: { nav: NavItem[]; categorie
           <nav className="ml-6 hidden gap-5 text-sm text-muted md:flex">
             <Link href="/philosophy" className="hover:text-ink">แคตตาล็อก</Link>
             <Link href="/glossary" className="hover:text-ink">พจนานุกรมศัพท์</Link>
+            <Link href="/debates" className="hover:text-ink">ข้อโต้แย้ง</Link>
             <Link href="/philosophy#graph" className="hover:text-ink">กราฟความสัมพันธ์</Link>
             <Link href="/philosophy#timeline" className="hover:text-ink">ไทม์ไลน์</Link>
           </nav>
